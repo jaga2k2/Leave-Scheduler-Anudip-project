@@ -1,0 +1,52 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: ezyzip-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: leave_scheduler
+      MYSQL_ROOT_PASSWORD: Subbu@895
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pSubbu@895"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image:leavescheduler/backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ezyzip-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/leave_scheduler?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Subbu@895
+      APP_MAIL_ENABLED: "false"
+      APP_BOOTSTRAP_ADMIN_KEY: SubbuAdminSetup2026
+    ports:
+      - "8080:8080"
+
+  frontend:
+    image: leavescheduler/frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ezyzip-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  mysql_data:
